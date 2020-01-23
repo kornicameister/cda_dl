@@ -1,0 +1,23 @@
+[flake8]
+statistics = True
+show-source = True
+
+select = E,F,W,C,I,B,S,T,Q
+
+import-order-style=appnexus
+application-package-names=cda_dl
+
+format = pylint
+hang-closing = false
+
+max-line-length = 90
+inline-quotes = single
+
+disable-noqa = True
+exclude =
+    .git,
+    __pycache__,
+    .mypy_cache,
+    .idea,
+    build,
+    dist

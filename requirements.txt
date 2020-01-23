@@ -1,0 +1,5 @@
+beautifulsoup4==4.8.2
+aiohttp==3.6.2
+uvloop==0.14.0
+loguru==0.4.1
+selenium==3.141.0
