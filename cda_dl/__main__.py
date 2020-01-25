@@ -96,8 +96,6 @@ async def main(args: t.Sequence[str]) -> None:
             ],
         ]
 
-        workers.append(asyncio.create_task(_remaining_downloads()))
-
         started_at = time.perf_counter()
 
         # put first url to download
@@ -163,16 +161,6 @@ async def _download(
             video_dl_queue.task_done()
 
 
-async def _remaining_downloads() -> None:
-    await asyncio.sleep(1)
-    while True:
-        logger.opt(lazy=True).debug(
-            'There are {all_task_count} tasks in total',
-            all_task_count=lambda: len(asyncio.all_tasks()),
-        )
-        await asyncio.sleep(10)
-
-
 async def _find_video_link(
         worker_id: int,
         session: aiohttp.ClientSession,
@@ -183,8 +171,6 @@ async def _find_video_link(
 
     options = webdriver.FirefoxOptions()
     options.headless = True
-
-    driver = webdriver.Firefox(options=options)
 
     with logger.contextualize(
             worker_id=worker_id,
@@ -217,10 +203,12 @@ async def _find_video_link(
                 hq=highest_quality,
             )
 
+            driver = webdriver.Firefox(options=options)
             driver.get(str(video_page_url.url.with_query(wersja=highest_quality)))
             await asyncio.sleep(5)
-
             video_src = driver.find_element_by_tag_name('video').get_attribute('src')
+            driver.quit()
+
             video_dl_url = yarl.URL(video_src)
             logger.info(
                 'Obtained downloadable video URL={u}',
@@ -271,7 +259,7 @@ async def _traverse_gallery(
                     ),
                     soup.find_all(
                         'a',
-                        class_=re.compile('-?link-?'),
+                        class_='thumbnail-link',
                         href=re.compile('video'),
                     ),
                 ),
@@ -284,12 +272,12 @@ async def _traverse_gallery(
 
             for va in video_anchors:
                 await gallery_queue.put(va)
-            traverse_queue.task_done()
 
             next_anchor = soup.find('a', rel='next')
             if next_anchor:
                 _, page_number = next_anchor['href'].replace('?', '').split('=')
                 await traverse_queue.put(root_url.with_query(page=int(page_number)))
+            traverse_queue.task_done()
 
 
 if __name__ == '__main__':
